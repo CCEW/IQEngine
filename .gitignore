@@ -58,3 +58,14 @@ e2e/test.zip
 python-env
 api/converters/vita49_to_sigmf/tests/custom_ofdm_out0x0.sigmf-meta
 api/converters/vita49_to_sigmf/tests/custom_ofdm_out0x0.sigmf-data
+.pytest-pymongo/download/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/archive
+.pytest-pymongo/extract/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/mongodb-win32-x86_64-windows-7.0.2/LICENSE-Community.txt
+.pytest-pymongo/extract/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/mongodb-win32-x86_64-windows-7.0.2/MPL-2
+.pytest-pymongo/extract/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/mongodb-win32-x86_64-windows-7.0.2/README
+.pytest-pymongo/extract/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/mongodb-win32-x86_64-windows-7.0.2/THIRD-PARTY-NOTICES
+.pytest-pymongo/extract/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/mongodb-win32-x86_64-windows-7.0.2/bin/Install-Compass.ps1
+.pytest-pymongo/extract/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/mongodb-win32-x86_64-windows-7.0.2/bin/mongod.exe
+.pytest-pymongo/extract/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/mongodb-win32-x86_64-windows-7.0.2/bin/mongod.pdb
+.pytest-pymongo/extract/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/mongodb-win32-x86_64-windows-7.0.2/bin/mongos.exe
+.pytest-pymongo/extract/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/mongodb-win32-x86_64-windows-7.0.2/bin/mongos.pdb
+.pytest-pymongo/extract/40672fae04df14c734d12e588193e20f813c9689871f6e46eb97888045ca59c0/mongodb-win32-x86_64-windows-7.0.2/bin/vc_redist.x64.exe
