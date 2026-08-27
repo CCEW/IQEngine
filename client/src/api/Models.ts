@@ -7,6 +7,10 @@ export interface DataSource {
   imageURL?: string;
   account: string; // azure storage account or S3 region
   container: string; // azure storage account or S3 bucket name
+  awsAccessKeyId?: string;
+  s3EndpointUrl?: string;
+  s3Prefix?: string;
+  s3VerifySsl?: boolean;
   sasToken?: string; // client-side azure blob only
   accountKey?: string; // client-side azure blob only
   owners?: string[];

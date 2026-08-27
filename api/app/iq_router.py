@@ -44,7 +44,13 @@ async def get_iq_data(
     if not datasource:
         raise HTTPException(status_code=404, detail="Datasource not found")
 
-    azure_client = AzureBlobClient(account=datasource.account, container=datasource.container, awsAccessKeyId=datasource.awsAccessKeyId)
+    azure_client = AzureBlobClient(
+        account=datasource.account,
+        container=datasource.container,
+        awsAccessKeyId=datasource.awsAccessKeyId,
+        s3EndpointUrl=datasource.s3EndpointUrl,
+        s3VerifySsl=datasource.s3VerifySsl,
+    )
 
     if hasattr(datasource, "sasToken"):
         if datasource.sasToken:
@@ -160,7 +166,13 @@ async def get_iqfile(
         raise HTTPException(status_code=403, detail="No Access")
     if not datasource:
         raise HTTPException(status_code=404, detail="Datasource not found")
-    azure_client = AzureBlobClient(account=datasource.account, container=datasource.container, awsAccessKeyId=datasource.awsAccessKeyId)
+    azure_client = AzureBlobClient(
+        account=datasource.account,
+        container=datasource.container,
+        awsAccessKeyId=datasource.awsAccessKeyId,
+        s3EndpointUrl=datasource.s3EndpointUrl,
+        s3VerifySsl=datasource.s3VerifySsl,
+    )
     iq_path = get_file_name(filepath, ApiType.IQDATA)
 
     if account == "local":
@@ -198,7 +210,13 @@ async def get_metafile(
         raise HTTPException(status_code=403, detail="No Access")
     if not datasource:
         raise HTTPException(status_code=404, detail="Datasource not found")
-    azure_client = AzureBlobClient(account=datasource.account, container=datasource.container, awsAccessKeyId=datasource.awsAccessKeyId)
+    azure_client = AzureBlobClient(
+        account=datasource.account,
+        container=datasource.container,
+        awsAccessKeyId=datasource.awsAccessKeyId,
+        s3EndpointUrl=datasource.s3EndpointUrl,
+        s3VerifySsl=datasource.s3VerifySsl,
+    )
     meta_path = get_file_name(filepath, ApiType.METADATA)
 
     if account == "local":
@@ -238,7 +256,13 @@ async def get_minimap_iq(
         raise HTTPException(status_code=403, detail="No Access")
     if not datasource:
         raise HTTPException(status_code=404, detail="Datasource not found")
-    azure_client = AzureBlobClient(account=datasource.account, container=datasource.container, awsAccessKeyId=datasource.awsAccessKeyId)
+    azure_client = AzureBlobClient(
+        account=datasource.account,
+        container=datasource.container,
+        awsAccessKeyId=datasource.awsAccessKeyId,
+        s3EndpointUrl=datasource.s3EndpointUrl,
+        s3VerifySsl=datasource.s3VerifySsl,
+    )
     try:
         if datasource.sasToken:
             azure_client.set_sas_token(decrypt(datasource.sasToken.get_secret_value()))

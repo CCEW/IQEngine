@@ -8,6 +8,7 @@ import boto3
 import numpy as np
 from bson import encode
 from bson.raw_bson import RawBSONDocument
+from botocore.config import Config
 from fastapi import Depends
 from helpers.cipher import decrypt, encrypt
 from helpers.datasource_access import check_access
@@ -19,6 +20,13 @@ from .azure_client import AzureBlobClient
 from .database import db
 from .metadata import create, validate_metadata
 from .models import DataSource
+
+
+def env_bool(name: str, default: bool = True) -> bool:
+    value = os.getenv(name, None)
+    if value is None:
+        return default
+    return value.lower() not in ["0", "false", "no", "off"]
 
 
 async def get(account, container) -> DataSource | None:
@@ -34,13 +42,14 @@ async def datasource_exists(account, container) -> bool:
     return await get(account, container) is not None
 
 
-async def sync(account: str, container: str, awsAccessKeyId: Optional[str]):
+async def sync(account: str, container: str, awsAccessKeyId: Optional[str] = None):
     print(f"[SYNC] Starting sync for {account}/{container} on PID {os.getpid()} at {time.time()}")
-    azure_blob_client = AzureBlobClient(account, container, awsAccessKeyId)
     datasource = await get(account, container)
     if datasource is None:
         print(f"[SYNC] Datasource {account}/{container} does not exist")  # dont raise exception or it will cause unclosed connection errors
         return
+    awsAccessKeyId = awsAccessKeyId or datasource.awsAccessKeyId
+    azure_blob_client = AzureBlobClient(account, container, awsAccessKeyId, datasource.s3EndpointUrl, datasource.s3VerifySsl)
     if datasource.sasToken:
         azure_blob_client.set_sas_token(decrypt(datasource.sasToken.get_secret_value()))
     if datasource.awsSecretAccessKey:
@@ -100,18 +109,34 @@ async def sync(account: str, container: str, awsAccessKeyId: Optional[str]):
                 aws_access_key_id=azure_blob_client.awsAccessKeyId,
                 aws_secret_access_key=azure_blob_client.awsSecretAccessKey.get_secret_value(),
                 region_name=azure_blob_client.account,
+                endpoint_url=azure_blob_client.s3EndpointUrl,
+                verify=azure_blob_client.s3VerifySsl,
+                config=Config(s3={"addressing_style": "path"}) if azure_blob_client.s3EndpointUrl else None,
             )
             paginator = s3_client.get_paginator("list_objects_v2")
             meta_blob_names = []
             data_blob_sizes = {}  # holds the names and sizes of sigmf-data files
             start_t = time.time()
-            for page in paginator.paginate(Bucket=azure_blob_client.container):
+            paginate_kwargs = {"Bucket": azure_blob_client.container}
+            if datasource.s3Prefix:
+                paginate_kwargs["Prefix"] = datasource.s3Prefix
+            for page in paginator.paginate(**paginate_kwargs):
                 for obj in page.get("Contents", []):
                     blob_name = obj["Key"]
                     if blob_name.endswith(".sigmf-meta"):
                         meta_blob_names.append(blob_name)
                     elif blob_name.endswith(".sigmf-data"):
                         data_blob_sizes[blob_name] = obj["Size"]  # bytes
+            if len(meta_blob_names) == 0:
+                sample_keys = []
+                for page in paginator.paginate(**paginate_kwargs):
+                    for obj in page.get("Contents", []):
+                        sample_keys.append(obj["Key"])
+                        if len(sample_keys) >= 20:
+                            break
+                    if len(sample_keys) >= 20:
+                        break
+                print(f"[SYNC] No .sigmf-meta files found. First S3 object keys under prefix {datasource.s3Prefix or '<none>'}: {sample_keys}")
 
         else:  # Azure blob
             container_client = azure_blob_client.get_container_client()
@@ -187,7 +212,8 @@ async def sync(account: str, container: str, awsAccessKeyId: Optional[str]):
                 continue
             bulk_writes.append(ReplaceOne(filter=filter, replacement=RawBSONDocument(metadata_bson), upsert=True))
         metadata_collection = db().metadata
-        metadata_collection.bulk_write(bulk_writes)
+        if bulk_writes:
+            await metadata_collection.bulk_write(bulk_writes)
 
         """ At some point we may remove the versions thing
         # audit document
@@ -241,9 +267,13 @@ async def import_datasources_from_env():
     connection_info = os.getenv("IQENGINE_CONNECTION_INFO", None)
     base_filepath = os.getenv("IQENGINE_BACKEND_LOCAL_FILEPATH", None)
     base_filepath = base_filepath.replace('"', "") if base_filepath else None
+    minio_endpoint_url = os.getenv("MINIO_ENDPOINT_URL", None)
+    minio_bucket = os.getenv("MINIO_BUCKET", None)
+    minio_access_key = os.getenv("MINIO_ACCESS_KEY", None)
+    minio_secret_key = os.getenv("MINIO_SECRET_KEY", None)
 
     # For those using MSAL to enter in datasource connection info, leave IQENGINE_CONNECTION_INFO and IQENGINE_BACKEND_LOCAL_FILEPATH empty
-    if not connection_info and not base_filepath:
+    if not connection_info and not base_filepath and not (minio_endpoint_url and minio_bucket and minio_access_key and minio_secret_key):
         return
 
     # Clear the db
@@ -283,6 +313,9 @@ async def import_datasources_from_env():
                     account=connection["accountName"],
                     container=connection["containerName"],
                     awsAccessKeyId=connection["awsAccessKeyId"] if "awsAccessKeyId" in connection else None,
+                    s3EndpointUrl=connection["s3EndpointUrl"] if "s3EndpointUrl" in connection else None,
+                    s3Prefix=connection["s3Prefix"] if "s3Prefix" in connection else None,
+                    s3VerifySsl=connection["s3VerifySsl"] if "s3VerifySsl" in connection else None,
                     sasToken=SecretStr(connection["sasToken"]) if "sasToken" in connection else None,
                     accountKey=SecretStr(connection["accountKey"]) if "accountKey" in connection else None,
                     awsSecretAccessKey=SecretStr(connection["awsSecretAccessKey"]) if "awsSecretAccessKey" in connection else None,
@@ -300,3 +333,30 @@ async def import_datasources_from_env():
             except Exception as e:
                 print(f"Failed to import datasource {connection['name']}.", e)
                 continue
+
+    if minio_endpoint_url and minio_bucket and minio_access_key and minio_secret_key:
+        minio_region = os.getenv("MINIO_REGION", "us-east-1")
+        minio_prefix = os.getenv("MINIO_PREFIX", None) or None
+        minio_verify_ssl = env_bool("MINIO_VERIFY_SSL", True)
+        try:
+            datasource = DataSource(
+                account=minio_region,
+                container=minio_bucket,
+                awsAccessKeyId=minio_access_key,
+                s3EndpointUrl=minio_endpoint_url,
+                s3Prefix=minio_prefix,
+                s3VerifySsl=minio_verify_ssl,
+                awsSecretAccessKey=SecretStr(minio_secret_key),
+                name=os.getenv("MINIO_DATASOURCE_NAME", "FAST MinIO SigMF"),
+                description=os.getenv("MINIO_DATASOURCE_DESCRIPTION", f"SigMF recordings from {minio_bucket} on FAST MinIO"),
+                imageURL=os.getenv("MINIO_DATASOURCE_IMAGE_URL", None),
+                type="api",
+                public=True,
+                owners=["IQEngine-Admin"],
+                readers=[],
+            )
+            create_ret = await create_datasource(datasource=datasource, user=None)
+            if create_ret:
+                await sync(minio_region, minio_bucket, minio_access_key)
+        except Exception as e:
+            print("Failed to import datasource FAST MinIO SigMF.", e)

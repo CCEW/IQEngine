@@ -9,6 +9,9 @@ class DataSource(BaseModel):
     account: str
     container: str
     awsAccessKeyId: Optional[str] = None
+    s3EndpointUrl: Optional[str] = None
+    s3Prefix: Optional[str] = None
+    s3VerifySsl: Optional[bool] = None
     description: Optional[str] = None
     imageURL: Optional[str] = None
     sasToken: Optional[SecretStr] = None
