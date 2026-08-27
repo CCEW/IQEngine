@@ -305,7 +305,13 @@ async def get_meta_thumbnail(
     if not datasource:
         raise HTTPException(status_code=404, detail="Datasource not found")
 
-    azure_client = AzureBlobClient(account=datasource.account, container=datasource.container, awsAccessKeyId=datasource.awsAccessKeyId)
+    azure_client = AzureBlobClient(
+        account=datasource.account,
+        container=datasource.container,
+        awsAccessKeyId=datasource.awsAccessKeyId,
+        s3EndpointUrl=datasource.s3EndpointUrl,
+        s3VerifySsl=datasource.s3VerifySsl,
+    )
 
     sas_token = datasource.sasToken.get_secret_value() if datasource.sasToken else None
     if sas_token is not None:
