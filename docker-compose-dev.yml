@@ -10,12 +10,19 @@ services:
       - ${IQENGINE_BACKEND_LOCAL_FILEPATH}:/tmp/recordings
     # We have to forward the env file env vars to the container
     environment:
-      IN_MEMORY_DB: 0
-      IQENGINE_CONNECTION_INFO: ${IQENGINE_CONNECTION_INFO}
+      IN_MEMORY_DB: ${IN_MEMORY_DB}
+      IQENGINE_CONNECTION_INFO: '{"settings":[]}'
       IQENGINE_FEATURE_FLAGS: ${IQENGINE_FEATURE_FLAGS}
-      IQENGINE_PLUGINS: '[{"name": "BuiltIn",  "url": "plugins:8000"}, {"name": "e2e tests", "url": "http://127.0.0.1:8000/plugins"}]'
-      IQENGINE_METADATA_DB_CONNECTION_STRING: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017
-      IQENGINE_BACKEND_LOCAL_FILEPATH: /tmp/recordings
+      IQENGINE_PLUGINS: ${IQENGINE_PLUGINS}
+      IQENGINE_METADATA_DB_CONNECTION_STRING: ${IQENGINE_METADATA_DB_CONNECTION_STRING}
+      MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT_URL}
+      MINIO_REGION: ${MINIO_REGION:-us-east-1}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_PREFIX: ${MINIO_PREFIX:-}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_DATASOURCE_NAME: ${MINIO_DATASOURCE_NAME:-FAST MinIO SigMF}
+      MINIO_VERIFY_SSL: ${MINIO_VERIFY_SSL:-true}
     depends_on:
       - mongo
     ports:

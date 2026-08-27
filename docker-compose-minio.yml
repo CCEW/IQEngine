@@ -1,0 +1,20 @@
+services:
+  iqengine:
+    build:
+      context: .
+    image: iqengine:latest
+    environment:
+      IN_MEMORY_DB: 1
+      IQENGINE_CONNECTION_INFO: '{"settings":[]}'
+      IQENGINE_FEATURE_FLAGS: '{"allowRefreshing": true, "useIQEngineOutReach": true, "displayIQEngineGitHub": true, "hideInternalBranding": true}'
+      IQENGINE_PLUGINS: '[]'
+      MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT_URL}
+      MINIO_REGION: ${MINIO_REGION:-us-east-1}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_PREFIX: ${MINIO_PREFIX:-}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_DATASOURCE_NAME: ${MINIO_DATASOURCE_NAME:-FAST MinIO SigMF}
+      MINIO_VERIFY_SSL: ${MINIO_VERIFY_SSL:-true}
+    ports:
+      - 3000:3000
