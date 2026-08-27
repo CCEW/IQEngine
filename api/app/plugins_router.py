@@ -22,7 +22,7 @@ async def create_plugin(
     if await db().plugins.find_one({"name": plugin.name}):
         raise HTTPException(status_code=409, detail="plugin Already Exists")
 
-    db().plugins.insert_one(plugin.dict(by_alias=True, exclude_unset=True))
+    await db().plugins.insert_one(plugin.dict(by_alias=True, exclude_unset=True))
     return plugin
 
 
