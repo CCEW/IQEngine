@@ -55,3 +55,23 @@ IQEngine is rapidly evolving, so check out our [LinkedIn](https://www.linkedin.c
 
 <p align="center"><img width=250 src="client/public/AIRBUS_white.png#gh-dark-mode-only" /></p>
 <p align="center"><img width=250 src="client/public/AIRBUS_blue.png#gh-light-mode-only" /></p>
+
+
+## Commands
+To build, rebuild and run IQEngine with MinIO without MongoDB, use the following commands:
+  docker compose -f docker-compose-minio.yml down --remove-orphans
+  docker compose -f docker-compose-minio.yml build iqengine
+  docker compose -f docker-compose-minio.yml up
+
+To rebuild and run IQEngine with MinIO and MongoDB, use the following commands:
+  docker compose -f docker-compose-dev.yml down --remove-orphans
+  docker compose -f docker-compose-dev.yml build
+  docker compose -f docker-compose-dev.yml up
+
+Connecting to **mongo shell**:
+  docker exec -it iqengine-mongo-1 mongo -u iqengine -p iqengine --authenticationDatabase admin
+
+Inspect metadata and schema in mongo shell:
+  use IQEngine
+  show collections
+  db.metadata.findOne()

@@ -1,0 +1,46 @@
+{
+  "global": {
+    "aerolake:signal_type": "<string (iridium|starlink|ais|ads-b)>",
+    "antenna:gain": "<number or null>",
+    "antenna:type": "<string or null>",
+    "antenna:model": "<string or null>",
+    "core:author": "<string or null>",
+    "core:collection": "<collection basename or null>",
+    "core:data_doi": "<URI string or null>",
+    "core:dataset": "<dataset filename or null>",
+    "core:datatype": "<required: c|r + f32|f64|i32|i16|u32|u16|i8|u8 + optional _le|_be>",
+    "core:description": "<string or null>",
+    "core:extensions": "<array of {name, version, optional} objects or []>",
+    "core:frequency": "<number in Hz or null>",
+    "core:geolocation": "<GeoJSON geometry or null>",
+    "core:hw": "<hardware description (bladerf|rtl-sdr|null)>",
+    "core:license": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "core:meta_doi": "<URI string or null>",
+    "core:metadata_only": "<boolean>",
+    "core:num_channels": "<positive integer; default 1>",
+    "core:offset": "<non-negative integer; default 0>",
+    "core:recorder": "<software name (GR-ION) or null>",
+    "core:sample_rate": "<number in samples/second; IQEngine defaults to 1>",
+    "core:sha512": "<128-character hexadecimal hash or null>",
+    "core:trailing_bytes": "<non-negative integer or null>",
+    "core:version": "<required SigMF version string>",
+    "traceability:origin": {
+      "type": "<source type, normally api>",
+      "account": "<source account or S3 region>",
+      "container": "<bucket or container name>",
+      "file_path": "<object path without .sigmf-meta or .sigmf-data>"
+    },
+    "traceability:revision": "<integer assigned by the integration or sync process>",
+    "traceability:sample_length": "<number of IQ samples calculated from the data object>"
+  },
+  "captures": [
+    {
+      "core:sample_start": "<required non-negative integer>",
+      "core:global_index": "<integer or null>",
+      "core:header_bytes": "<non-negative integer or null>",
+      "core:frequency": "<number in Hz or null>",
+      "core:datetime": "<ISO-8601 timestamp or null>"
+    }
+  ],
+  "annotations": []
+}
