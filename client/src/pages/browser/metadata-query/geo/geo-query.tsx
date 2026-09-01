@@ -50,8 +50,8 @@ export const GeoQuery = ({
   setGeoPositionUpdate,
 }) => {
   const defaultCenter = {
-    lat: 51.505,
-    lng: -0.09,
+    lat: 45.5017,
+    lng: -73.5673,
   };
 
   const defaultRadius = 20000;
