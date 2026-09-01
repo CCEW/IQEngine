@@ -31,15 +31,15 @@ export const MetadataQuery = () => {
   const renderQuerySelection = () => {
     return Object.keys(selections).map((item) => {
       return (
-        <label key={item} className="cursor-pointer label">
-          <span className="label-text">{item}</span>
+        <label key={item} className="cursor-pointer label flex items-center justify-start gap-3 py-1">
           <input
             onChange={toggleSelected}
             type="checkbox"
             name={item}
             checked={selections[item].selected}
-            className="checkbox checkbox-success"
+            className="checkbox checkbox-success flex-none"
           />
+          <span className="label-text whitespace-nowrap">{item}</span>
         </label>
       );
     });
@@ -136,14 +136,12 @@ export const MetadataQuery = () => {
 
   return (
     <div className="ml-10 mt-100">
-      <h1 className="text-3xl font-bold">Regular Query</h1>
-      <div className="grid grid-cols-10 gap-3">
-        <div className="col-span-1">
-          <div className="form-control">{renderQuerySelection()}</div>
-        </div>
-        <div className="col-span-9 ml-10 ">
+      <h1 className="text-3xl font-bold mb-4">Regular Query</h1>
+      <div className="flex flex-col md:flex-row gap-8 items-start">
+        <div className="form-control flex-none w-48 sticky top-4">{renderQuerySelection()}</div>
+        <div className="flex-1 min-w-0">
           {renderQueryComponents()}
-          <button onClick={handleQuery} disabled={!showQueryButton()}>
+          <button className="btn btn-success" onClick={handleQuery} disabled={!showQueryButton()}>
             QUERY
           </button>
         </div>

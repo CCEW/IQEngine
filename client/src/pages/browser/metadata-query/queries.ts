@@ -31,6 +31,22 @@ export const queries = {
     },
     value: '',
   },
+  modified: {
+    component: DateQuery,
+    selected: false,
+    description: 'The date the recording metadata was last modified',
+    validator: ({ from, to }) => {
+      let parsedTo = moment(to);
+      let parsedFrom = moment(from);
+      if (parsedTo.isValid() && parsedFrom.isValid() && parsedTo.isAfter(parsedFrom)) {
+        return `min_modified=${encodeURIComponent(parsedFrom.format())}&max_modified=${encodeURIComponent(
+          parsedTo.format()
+        )}`;
+      }
+      return false;
+    },
+    value: '',
+  },
   author: {
     component: StringQuery,
     selected: false,
@@ -52,6 +68,18 @@ export const queries = {
         return false;
       }
       return `comment=${encodeURIComponent(comment)}`;
+    },
+    value: '',
+  },
+  description: {
+    component: StringQuery,
+    selected: false,
+    description: 'The global description of the recording',
+    validator: (description: string) => {
+      if (!description) {
+        return false;
+      }
+      return `description=${encodeURIComponent(description)}`;
     },
     value: '',
   },
@@ -90,6 +118,66 @@ export const queries = {
         return false;
       }
       return `label=${encodeURIComponent(label)}`;
+    },
+    value: '',
+  },
+  signal_type: {
+    component: StringQuery,
+    selected: false,
+    description: 'The signal type (e.g. IRIDIUM)',
+    validator: (signalType: string) => {
+      if (!signalType) {
+        return false;
+      }
+      return `signal_type=${encodeURIComponent(signalType)}`;
+    },
+    value: '',
+  },
+  hw: {
+    component: StringQuery,
+    selected: false,
+    description: 'The hardware used to make the recording',
+    validator: (hw: string) => {
+      if (!hw) {
+        return false;
+      }
+      return `hw=${encodeURIComponent(hw)}`;
+    },
+    value: '',
+  },
+  location: {
+    component: StringQuery,
+    selected: false,
+    description: 'The location where the recording was made (e.g. montreal)',
+    validator: (location: string) => {
+      if (!location) {
+        return false;
+      }
+      return `location=${encodeURIComponent(location)}`;
+    },
+    value: '',
+  },
+  operator: {
+    component: StringQuery,
+    selected: false,
+    description: 'The operator who made the recording',
+    validator: (operator: string) => {
+      if (!operator) {
+        return false;
+      }
+      return `operator=${encodeURIComponent(operator)}`;
+    },
+    value: '',
+  },
+  recorder: {
+    component: StringQuery,
+    selected: false,
+    description: 'The recorder software or device used',
+    validator: (recorder: string) => {
+      if (!recorder) {
+        return false;
+      }
+      return `recorder=${encodeURIComponent(recorder)}`;
     },
     value: '',
   },

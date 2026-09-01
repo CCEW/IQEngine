@@ -253,14 +253,14 @@ export const Browser = () => {
           />
         </div>
         {queryActive && (
-          <div>
+          <div className="flex-grow">
             <SmartQuery /> <br></br>
             <MetadataQuery />
           </div>
         )}
 
         {/* -------Recording list------- */}
-        <div className="flex pl-6 justify-center w-full">
+        <div className="flex pl-6 justify-center w-auto grow-0 basis-auto">
           {!metadataCollection.isFetched && !queryActive && (
             <div className="h-64 mb-12 mr-64">
               <svg

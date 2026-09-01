@@ -92,4 +92,48 @@ describe('Test query validation objects', () => {
     const result = validator(datasourceName);
     expect(result).toBe(expected);
   });
+
+  test('description validation returns correct query string', () => {
+    const { validator } = queries.description;
+    expect(validator('test description')).toBe('description=test%20description');
+  });
+
+  test('modified validation returns correct query string', () => {
+    const { validator } = queries.modified;
+    const result = validator({ from: '2026-07-21', to: '2026-07-22' });
+    expect(result).toContain('min_modified=');
+    expect(result).toContain('max_modified=');
+  });
+
+  test('modified validation fails when range is inverted', () => {
+    const { validator } = queries.modified;
+    expect(validator({ from: '2026-07-22', to: '2026-07-21' })).toBe(false);
+  });
+
+  // These map 1:1 onto the AeroLake filters accepted by GET /api/datasources/query.
+  test.each([
+    ['signal_type', 'IRIDIUM', 'signal_type=IRIDIUM'],
+    ['hw', 'blade rf', 'hw=blade%20rf'],
+    ['location', 'montreal', 'location=montreal'],
+    ['operator', 'cami', 'operator=cami'],
+    ['recorder', 'ion', 'recorder=ion'],
+  ])('%s validation returns correct query string', (name, input, expected) => {
+    const { validator } = queries[name];
+    expect(validator(input)).toBe(expected);
+  });
+
+  test.each(['description', 'signal_type', 'hw', 'location', 'operator', 'recorder'])(
+    '%s validation returns false when empty',
+    (name) => {
+      const { validator } = queries[name];
+      expect(validator('')).toBe(false);
+    }
+  );
+
+  test('every query filter exposes a component and a validator', () => {
+    for (const [name, config] of Object.entries(queries)) {
+      expect(config.component, `${name} is missing a component`).toBeTruthy();
+      expect(typeof config.validator, `${name} is missing a validator`).toBe('function');
+    }
+  });
 });
