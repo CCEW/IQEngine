@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
@@ -23,7 +23,8 @@ from .metadata import (
     query_metadata,
     versions_collection,
 )
-from .models import Configuration, DataSource, DataSourceReference, TrackMetadata
+from .models import Configuration, DataSource, DataSourceReference, IntegrationSearchResponse, SyncJobResponse, TrackMetadata
+from .sync_jobs import as_utc, get_job, reconcile, start_sync
 
 router = APIRouter()
 
@@ -153,6 +154,53 @@ async def sync_datasource(
 
     background_tasks.add_task(datasources.sync, account, container)
     return {"message": "Syncing"}
+
+
+@router.get("/api/v1/integration/datasources/{account}/{container}", response_model=DataSource)
+async def integration_datasource(datasource: DataSource = Depends(datasources.get), access_allowed=Depends(check_access)):
+    if datasource is None:
+        raise HTTPException(status_code=404, detail="Datasource not found")
+    if access_allowed is None:
+        raise HTTPException(status_code=403, detail="No Access")
+    return datasource
+
+
+@router.post("/api/v1/integration/datasources/{account}/{container}/sync", response_model=SyncJobResponse, status_code=202)
+async def integration_sync(account: str, container: str, background_tasks: BackgroundTasks, access_allowed=Depends(check_access)):
+    if access_allowed is None:
+        raise HTTPException(status_code=403, detail="No Access")
+    if await datasources.get(account, container) is None:
+        raise HTTPException(status_code=404, detail="Datasource not found")
+    job_id, created = await start_sync(account, container)
+    if created:
+        background_tasks.add_task(reconcile, account, container, job_id)
+    return await get_job(job_id)
+
+
+@router.get("/api/v1/integration/sync/{job_id}", response_model=SyncJobResponse)
+async def integration_sync_status(job_id: str):
+    job = await get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Sync job not found")
+    return job
+
+
+@router.get("/api/v1/integration/datasources/query", response_model=IntegrationSearchResponse)
+async def integration_query(current_user: Optional[dict] = Depends(get_current_user), account: Optional[List[str]] = Query([]), container: Optional[List[str]] = Query([]), min_frequency: Optional[float] = Query(None), max_frequency: Optional[float] = Query(None), min_datetime: Optional[datetime] = Query(None), max_datetime: Optional[datetime] = Query(None), signal_type: Optional[str] = Query(None), hw: Optional[str] = Query(None), operator: Optional[str] = Query(None), recorder: Optional[str] = Query(None), text: Optional[str] = Query(None)):
+    results = await query_metadata(account=account, container=container, min_frequency=min_frequency, max_frequency=max_frequency, min_datetime=min_datetime, max_datetime=max_datetime, signal_type=signal_type, hw=hw, operator=operator, recorder=recorder, text=text, catalog_status="active")
+    results = [item for item in results if await check_access(item.account, item.container, current_user) is not None]
+    jobs = db().sync_jobs
+    latest = await jobs.find_one({"status": {"$in": ["completed", "failed"]}}, sort=[("completed_at", -1)])
+    latest_success = await jobs.find_one({"status": "completed"}, sort=[("completed_at", -1)])
+    active = await jobs.find_one({"status": {"$in": ["queued", "running"]}}, sort=[("created_at", -1)])
+    state = "current" if latest_success else "unavailable"
+    if active:
+        state = "sync in progress"
+    elif latest and latest.get("status") == "failed":
+        state = "sync failed"
+    elif latest_success and latest_success.get("completed_at") and datetime.now(timezone.utc) - as_utc(latest_success["completed_at"]) > timedelta(hours=float(os.getenv("IQENGINE_SYNC_FRESHNESS_HOURS", 3))):
+        state = "stale"
+    return IntegrationSearchResponse(state=state, last_successful_sync=latest_success.get("completed_at") if latest_success else None, active_job_id=active.get("job_id") if active else None, results=results)
 
 
 @router.get("/api/datasources/{account}/{container}/{file_path}/sas")
@@ -362,6 +410,13 @@ async def query_meta(
     description: Optional[str] = Query(None),  # global description
     min_datetime: Optional[datetime] = Query(None),
     max_datetime: Optional[datetime] = Query(None),
+    min_modified: Optional[datetime] = Query(None),
+    max_modified: Optional[datetime] = Query(None),
+    signal_type: Optional[str] = Query(None),
+    hw: Optional[str] = Query(None),
+    location: Optional[str] = Query(None),
+    operator: Optional[str] = Query(None),
+    recorder: Optional[str] = Query(None),
     text: Optional[str] = Query(None),
     captures_geo: Optional[str] = Query(None),
     annotations_geo: Optional[str] = Query(None),
@@ -382,6 +437,13 @@ async def query_meta(
             annotations_geo=annotations_geo,
             min_datetime=min_datetime,
             max_datetime=max_datetime,
+            min_modified=min_modified,
+            max_modified=max_modified,
+            signal_type=signal_type,
+            hw=hw,
+            location=location,
+            operator=operator,
+            recorder=recorder,
             text=text,
         )
 
@@ -437,6 +499,13 @@ async def open_query_meta(
     annotations_geo = jsonParameters.get("annotations_geo")
     min_datetime = jsonParameters.get("min_datetime")
     max_datetime = jsonParameters.get("max_datetime")
+    min_modified = jsonParameters.get("min_modified")
+    max_modified = jsonParameters.get("max_modified")
+    signal_type = jsonParameters.get("signal_type")
+    hw = jsonParameters.get("hw")
+    location = jsonParameters.get("location")
+    operator = jsonParameters.get("operator")
+    recorder = jsonParameters.get("recorder")
     captures_geo_json = jsonParameters.get("captures_geo_json")
     captures_radius = jsonParameters.get("captures_radius")
     annotations_geo_json = jsonParameters.get("annotations_geo_json")
@@ -447,6 +516,10 @@ async def open_query_meta(
         min_datetime = datetime.fromisoformat(min_datetime.replace("Z", "+00:00"))
     if max_datetime:
         max_datetime = datetime.fromisoformat(max_datetime.replace("Z", "+00:00"))
+    if min_modified:
+        min_modified = datetime.fromisoformat(min_modified.replace("Z", "+00:00"))
+    if max_modified:
+        max_modified = datetime.fromisoformat(max_modified.replace("Z", "+00:00"))
 
     try:
         result = await query_metadata(
@@ -463,6 +536,13 @@ async def open_query_meta(
             annotations_geo=annotations_geo,
             min_datetime=min_datetime,
             max_datetime=max_datetime,
+            min_modified=min_modified,
+            max_modified=max_modified,
+            signal_type=signal_type,
+            hw=hw,
+            location=location,
+            operator=operator,
+            recorder=recorder,
             captures_geo_json=captures_geo_json,
             captures_radius=captures_radius,
             annotations_geo_json=annotations_geo_json,

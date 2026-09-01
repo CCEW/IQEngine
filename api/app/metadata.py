@@ -106,6 +106,8 @@ async def process_geolocation(target: str, geolocation: str):
             target_field = "captures.core:geolocation"
         if target == "annotations":
             target_field = "annotations.core:geolocation"
+        if target == "global":
+            target_field = "global.core:geolocation"
 
         return {
             target_field: {
@@ -137,11 +139,19 @@ async def query_metadata(
     annotations_geo: Optional[str] = None,
     min_datetime: Optional[datetime] = None,
     max_datetime: Optional[datetime] = None,
+    min_modified: Optional[datetime] = None,
+    max_modified: Optional[datetime] = None,
+    signal_type: Optional[str] = None,
+    hw: Optional[str] = None,
+    location: Optional[str] = None,
+    operator: Optional[str] = None,
+    recorder: Optional[str] = None,
     text: Optional[str] = None,
     captures_geo_json: Optional[str] = None,
     captures_radius: Optional[float] = None,
     annotations_geo_json: Optional[str] = None,
     annotations_radius: Optional[float] = None,
+    catalog_status: Optional[str] = None,
 ) -> List[DataSourceReference]:
     """
     This function is responsible for querying metadata from the specified MongoDB collection based on various
@@ -164,6 +174,13 @@ async def query_metadata(
     - annotations_geo (Optional[str]): Geolocation information to filter the metadata by in the "annotations" section.
     - min_datetime (Optional[datetime]): The minimum datetime value to filter the metadata by.
     - max_datetime (Optional[datetime]): The maximum datetime value to filter the metadata by.
+    - min_modified (Optional[datetime]): The minimum metadata modified time.
+    - max_modified (Optional[datetime]): The maximum metadata modified time.
+    - signal_type (Optional[str]): The AeroLake signal type.
+    - hw (Optional[str]): The recording hardware.
+    - location (Optional[str]): A keyword to search for in the recording's textual location (e.g. "montreal").
+    - operator (Optional[str]): The AeroLake recording operator.
+    - recorder (Optional[str]): The recording software or recorder.
     - text (Optional[str]): A keyword to search for in various description fields to filter the metadata by.
 
     Returns:
@@ -188,6 +205,8 @@ async def query_metadata(
     """
     metadataSet: AgnosticCollection = collection()
     query_condition: Dict[str, Any] = {}
+    if catalog_status is not None:
+        query_condition["catalog_status"] = catalog_status
     if database_id:
         database_id_conditions = []
         for entry in database_id:
@@ -253,6 +272,17 @@ async def query_metadata(
     if comment is not None:
         query_condition.update({"annotations.core:description": {"$regex": comment, "$options": "i"}})
 
+    string_filters = {
+        "global.aerolake:signal_type": signal_type,
+        "global.core:hw": hw,
+        "global.aerolake:location": location,
+        "global.aerolake:operator": operator,
+        "global.core:recorder": recorder,
+    }
+    for field, value in string_filters.items():
+        if value is not None:
+            query_condition.update({field: {"$regex": value, "$options": "i"}})
+
     if captures_geo:
         query_condition.update(await process_geolocation("captures", captures_geo))
     if annotations_geo:
@@ -297,6 +327,14 @@ async def query_metadata(
             max_datetime_formatted = max_datetime.strftime("%Y-%m-%dT%H:%M:%S")
             datetime_query.update({"$lte": max_datetime_formatted})
         query_condition.update({"captures.core:datetime": datetime_query})
+
+    if min_modified is not None or max_modified is not None:
+        modified_query = {}
+        if min_modified is not None:
+            modified_query.update({"$gte": min_modified.isoformat()})
+        if max_modified is not None:
+            modified_query.update({"$lte": max_modified.isoformat()})
+        query_condition.update({"global.aerolake:modified": modified_query})
 
     metadata = metadataSet.find(
         query_condition,

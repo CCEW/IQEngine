@@ -10,7 +10,11 @@ from fastapi.testclient import TestClient
 
 @pytest_asyncio.fixture(autouse=True, scope="function")
 async def env_setup():
+    # main.py calls load_dotenv(override=True) at import time, which would replace
+    # these with the developer's real .env values (e.g. a live mongo host), so they
+    # are re-applied after that import in the client fixture as well.
     os.environ["IN_MEMORY_DB"] = "1"
+    os.environ.pop("IQENGINE_METADATA_DB_CONNECTION_STRING", None)
     yield
     import app.database as db
 
@@ -66,6 +70,11 @@ def client():
                     mock_i.return_value = None
                     import app.database as db
                     from main import app
+
+                    # Undo load_dotenv(override=True) from main.py so tests never
+                    # talk to a real MongoDB instance.
+                    os.environ["IN_MEMORY_DB"] = "1"
+                    os.environ.pop("IQENGINE_METADATA_DB_CONNECTION_STRING", None)
 
                     app.add_event_handler("shutdown", db.reset_db)
                     with TestClient(app) as test_client:

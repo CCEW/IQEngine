@@ -18,6 +18,10 @@ test_datasource_id = f'{test_datasource["account"]}_{test_datasource["container"
 
 valid_metadata = {
     "global": {
+        "aerolake:location": "Montreal",
+        "aerolake:modified": "2026-07-21T12:00:00+00:00",
+        "aerolake:operator": "Camila",
+        "aerolake:signal_type": "iridium",
         "antenna:gain": None,
         "antenna:type": None,
         "core:author": None,
@@ -28,13 +32,13 @@ valid_metadata = {
         "core:description": None,
         "core:extensions": None,
         "core:geolocation": None,
-        "core:hw": None,
+        "core:hw": "bladerf",
         "core:license": None,
         "core:meta_doi": None,
         "core:metadata_only": None,
         "core:num_channels": None,
         "core:offset": None,
-        "core:recorder": None,
+        "core:recorder": "GR-ION",
         "core:sample_rate": 1000000,
         "core:sha512": None,
         "core:trailing_bytes": None,

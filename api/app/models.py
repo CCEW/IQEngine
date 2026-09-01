@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, Extra, Field, SecretStr
@@ -27,6 +28,26 @@ class DataSourceReference(BaseModel):
     account: str
     container: str
     file_path: str
+
+
+class SyncJobResponse(BaseModel):
+    job_id: str
+    account: str
+    container: str
+    status: str
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    duration_seconds: Optional[float] = None
+    object_counts: dict[str, int] = {}
+    error: Optional[List[dict[str, str]]] = None
+
+
+class IntegrationSearchResponse(BaseModel):
+    state: str
+    last_successful_sync: Optional[datetime] = None
+    active_job_id: Optional[str] = None
+    results: List[DataSourceReference]
 
 
 class Plugin(BaseModel):
