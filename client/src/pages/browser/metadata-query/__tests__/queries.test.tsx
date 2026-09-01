@@ -130,6 +130,13 @@ describe('Test query validation objects', () => {
     }
   );
 
+  test('query filters expose user-friendly labels for display in the UI', () => {
+    expect(queries.signal_type.label).toBe('Signal Type');
+    expect(queries.hw.label).toBe('Hardware');
+    expect(queries.geo.label).toBe('Geolocation');
+    expect(queries.signal_type.options).toEqual(['starlink', 'iridium', 'ais', 'ads-b']);
+  });
+
   test('every query filter exposes a component and a validator', () => {
     for (const [name, config] of Object.entries(queries)) {
       expect(config.component, `${name} is missing a component`).toBeTruthy();

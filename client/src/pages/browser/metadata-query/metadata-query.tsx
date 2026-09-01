@@ -29,8 +29,11 @@ export const MetadataQuery = () => {
   };
 
   const renderQuerySelection = () => {
-    return Object.keys(selections).map((item) => {
-      return (
+    const primaryQueries = Object.keys(selections).filter((item) => !selections[item].advanced);
+    const advancedQueries = Object.keys(selections).filter((item) => selections[item].advanced);
+
+    const renderList = (items) =>
+      items.map((item) => (
         <label key={item} className="cursor-pointer label flex items-center justify-start gap-3 py-1">
           <input
             onChange={toggleSelected}
@@ -39,10 +42,21 @@ export const MetadataQuery = () => {
             checked={selections[item].selected}
             className="checkbox checkbox-success flex-none"
           />
-          <span className="label-text whitespace-nowrap">{item}</span>
+          <span className="label-text whitespace-nowrap">{selections[item].label ?? item}</span>
         </label>
-      );
-    });
+      ));
+
+    return (
+      <>
+        {renderList(primaryQueries)}
+        {advancedQueries.length > 0 && (
+          <div className="mt-4 border-t border-base-300 pt-3">
+            <div className="mb-2 text-xs uppercase tracking-wide text-base-content/60">Advanced</div>
+            {renderList(advancedQueries)}
+          </div>
+        )}
+      </>
+    );
   };
 
   const renderQueryComponents = () => {
@@ -54,6 +68,8 @@ export const MetadataQuery = () => {
             <Component
               key={item}
               queryName={item}
+              label={selections[item].label ?? item}
+              options={selections[item].options ?? []}
               validator={selections[item].validator}
               description={selections[item].description}
               handleQueryValid={handleQueryValid}
@@ -68,6 +84,8 @@ export const MetadataQuery = () => {
           <Component
             key={item}
             queryName={item}
+            label={selections[item].label ?? item}
+            options={selections[item].options ?? []}
             validator={selections[item].validator}
             description={selections[item].description}
             handleQueryValid={handleQueryValid}
