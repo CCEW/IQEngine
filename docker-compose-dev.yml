@@ -7,11 +7,11 @@ services:
       context: .
     image: iqengine:latest
     volumes:
-      - ${IQENGINE_BACKEND_LOCAL_FILEPATH}:/tmp/recordings
+      - /tmp/recordings
     # We have to forward the env file env vars to the container
     environment:
       IN_MEMORY_DB: ${IN_MEMORY_DB}
-      IQENGINE_CONNECTION_INFO: '{"settings":[]}'
+      IQENGINE_CONNECTION_INFO: ${IQENGINE_CONNECTION_INFO}
       IQENGINE_FEATURE_FLAGS: ${IQENGINE_FEATURE_FLAGS}
       IQENGINE_PLUGINS: ${IQENGINE_PLUGINS}
       IQENGINE_METADATA_DB_CONNECTION_STRING: ${IQENGINE_METADATA_DB_CONNECTION_STRING}
