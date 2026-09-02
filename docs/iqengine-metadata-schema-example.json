@@ -8,7 +8,7 @@
     "core:datatype": "<required: c|r + f32|f64|i32|i16|u32|u16|i8|u8 + optional _le|_be>",
     "core:sample_rate": "<number in samples/second; IQEngine defaults to 1>",
     "core:description": "<string or null>",
-    "core:recorder": "<software name (GR-ION) or null>",
+    "core:recorder": "<software name (GR-ION|GNU Radio|aerolake-ingest) or null>",
     "core:hw": "<hardware description (bladerf|rtl-sdr|null)>",
     "core:version": "<required SigMF version string>",
     "core:num_channels": "<positive integer; default 1>",
