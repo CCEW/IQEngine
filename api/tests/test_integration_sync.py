@@ -15,14 +15,16 @@ DATATYPE = "ci16_le"  # 4 bytes per IQ sample
 BYTES_PER_SAMPLE = 4
 
 
-def sigmf_meta(frequency: int = 8486285000, operator: str = "cami") -> dict:
+def sigmf_meta(frequency: int = 8486285000, operator: str = "cami", author: str = "Camila", location: str = "Montreal, Quebec") -> dict:
     return {
         "global": {
             "core:datatype": DATATYPE,
             "core:sample_rate": 1000000,
             "core:version": "1.0.0",
+            "core:author": author,
             "aerolake:signal_type": "IRIDIUM",
             "aerolake:operator": operator,
+            "aerolake:location": location,
             "aerolake:modified": "2026-07-21T12:00:00+00:00",
         },
         "captures": [{"core:sample_start": 0, "core:frequency": frequency}],
@@ -90,6 +92,12 @@ def test_valid_new_recording_is_indexed_and_searchable(client, local_datasource)
     assert body["state"] in ("current", "stale")
     assert body["last_successful_sync"] is not None
     assert [r["file_path"] for r in body["results"]] == ["rec-a"]
+
+    author_search = client.get("/api/v1/integration/datasources/query?author=camila")
+    assert [r["file_path"] for r in author_search.json()["results"]] == ["rec-a"]
+
+    location_search = client.get("/api/v1/integration/datasources/query?location=montreal")
+    assert [r["file_path"] for r in location_search.json()["results"]] == ["rec-a"]
 
 
 def test_sample_length_is_derived_from_data_object_size(client, local_datasource):

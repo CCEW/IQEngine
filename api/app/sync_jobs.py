@@ -46,10 +46,10 @@ async def claim_sync_job(account: str, container: str) -> tuple[str, bool]:
     await jobs.create_index(
         [("account", 1), ("container", 1)],
         unique=True,
-        partialFilterExpression={"status": {"$in": list(ACTIVE_STATUSES)}},
+        partialFilterExpression={"is_active": True},
     )
     existing = await jobs.find_one(
-        {"account": account, "container": container, "status": {"$in": list(ACTIVE_STATUSES)}},
+        {"account": account, "container": container, "is_active": True},
         sort=[("created_at", -1)],
     )
     if existing:
@@ -60,6 +60,7 @@ async def claim_sync_job(account: str, container: str) -> tuple[str, bool]:
     try:
         await jobs.insert_one(
             {
+            "is_active": True,
             "job_id": job_id,
             "account": account,
             "container": container,
@@ -188,10 +189,10 @@ async def reconcile(account: str, container: str, job_id: str) -> None:
             await metadata_collection.update_one({"_id": record["_id"]}, {"$set": {"catalog_status": status, "missing_since": missing_since, "last_seen_at": record.get("last_seen_at")}})
             counts[status] += 1
         completed = _now()
-        await jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "completed_at": completed, "duration_seconds": (completed - started).total_seconds(), "object_counts": counts, "error": errors or None}})
+        await jobs.update_one({"job_id": job_id}, {"$set": {"status": "completed", "is_active": False, "completed_at": completed, "duration_seconds": (completed - started).total_seconds(), "object_counts": counts, "error": errors or None}})
     except Exception as error:
         completed = _now()
-        await jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "completed_at": completed, "duration_seconds": (completed - started).total_seconds(), "object_counts": counts, "error": [{"code": "sync_failed", "detail": str(error)}]}})
+        await jobs.update_one({"job_id": job_id}, {"$set": {"status": "failed", "is_active": False, "completed_at": completed, "duration_seconds": (completed - started).total_seconds(), "object_counts": counts, "error": [{"code": "sync_failed", "detail": str(error)}]}})
     finally:
         if client is not None:
             await client.close_blob_clients()

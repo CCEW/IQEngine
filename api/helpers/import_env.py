@@ -5,6 +5,7 @@ import time
 from app.config import import_default_config_from_env
 from app.database import db
 from app.datasources import import_datasources_from_env
+from app.metadata import ensure_indexes
 from app.plugins import import_plugins_from_env
 
 # For whatever reason we cant define the 3 above in this file or else the mocks fail
@@ -23,6 +24,7 @@ async def import_all_from_env():
 
     print(f"import_all_from_env starting on PID {os.getpid()} at {time.time()}")
     try:
+        await ensure_indexes()
         await import_plugins_from_env()
         await import_default_config_from_env()
         await import_datasources_from_env()

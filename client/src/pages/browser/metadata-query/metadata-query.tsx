@@ -159,7 +159,11 @@ export const MetadataQuery = () => {
         <div className="form-control flex-none w-48 sticky top-4">{renderQuerySelection()}</div>
         <div className="flex-1 min-w-0">
           {renderQueryComponents()}
-          <button className="btn btn-success" onClick={handleQuery} disabled={!showQueryButton()}>
+          <button
+            className="btn btn-success disabled:!bg-[#4CE091] disabled:![--tw-text-opacity:.2] disabled:![color:var(--fallback-b1,oklch(var(--b1)/var(--tw-text-opacity)))]"
+            onClick={handleQuery}
+            disabled={!showQueryButton()}
+          >
             QUERY
           </button>
         </div>

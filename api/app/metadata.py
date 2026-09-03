@@ -31,6 +31,12 @@ def collection() -> AgnosticCollection:
     return collection
 
 
+async def ensure_indexes() -> None:
+    metadata_collection = collection()
+    await metadata_collection.create_index([("captures.core:geolocation", "2dsphere")])
+    await metadata_collection.create_index([("annotations.core:geolocation", "2dsphere")])
+
+
 def versions_collection() -> AgnosticCollection:
     from .database import db
 
