@@ -202,7 +202,9 @@ This is the recommended operational model:
 - `.sigmf-meta` and `.sigmf-data` are created or updated in that storage
 - the IQEngine sync step indexes the new/changed objects
 - catalog queries reference the indexed metadata
-- deletions should be treated as a reconciliation problem, not as an assumed automatic cleanup unless explicitly implemented
+- the versioned integration sync reconciles absent records as `missing` and,
+  after `IQENGINE_SYNC_RETENTION_HOURS` (seven days by default), as `deleted`;
+  it does not hard-delete them
 
 ## Production-readiness notes
 
@@ -233,6 +235,18 @@ Core catalog access patterns include:
 - `GET /api/datasources/query`
 - `GET /api/datasources/{account}/{container}/{filepath:path}/meta`
 - `POST /api/datasources/{account}/{container}/{filepath:path}/meta`
+
+The AeroLake-oriented integration surface is versioned for datasource lookup,
+sync, sync status, and query:
+
+- `GET /api/v1/integration/datasources/{account}/{container}`
+- `POST /api/v1/integration/datasources/{account}/{container}/sync`
+- `GET /api/v1/integration/sync/{job_id}`
+- `GET /api/v1/integration/datasources/query`
+
+The sync request returns `202` and a job document. The job status reports
+`queued`, `running`, `completed`, or `failed`, with duration, object counts,
+and errors. Metadata retrieval remains on the unversioned route above.
 
 In practice, the catalog API is intended to be used as the integration boundary, while raw storage remains the true data source.
 
