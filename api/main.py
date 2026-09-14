@@ -98,7 +98,7 @@ app.add_event_handler("startup", import_all_from_env)  # clears db and adds plug
 
 
 @app.exception_handler(ServerSelectionTimeoutError)
-async def database_exception_handler():
+async def database_exception_handler(request, exc):
     return JSONResponse(
         status_code=503,
         content={"message": "Service Unavailable: Unable to connect to the database."},

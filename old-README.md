@@ -75,3 +75,6 @@ Inspect metadata and schema in mongo shell:
   use IQEngine
   show collections
   db.metadata.findOne()
+
+To establish a connection in MongoDB Compass GUI, use the following connection string:
+  mongodb://iqengine:iqengine@localhost:27017/IQEngine?authSource=admin

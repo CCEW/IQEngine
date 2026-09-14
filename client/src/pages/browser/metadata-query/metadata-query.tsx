@@ -29,20 +29,34 @@ export const MetadataQuery = () => {
   };
 
   const renderQuerySelection = () => {
-    return Object.keys(selections).map((item) => {
-      return (
-        <label key={item} className="cursor-pointer label">
-          <span className="label-text">{item}</span>
+    const primaryQueries = Object.keys(selections).filter((item) => !selections[item].advanced);
+    const advancedQueries = Object.keys(selections).filter((item) => selections[item].advanced);
+
+    const renderList = (items) =>
+      items.map((item) => (
+        <label key={item} className="cursor-pointer label flex items-center justify-start gap-3 py-1">
           <input
             onChange={toggleSelected}
             type="checkbox"
             name={item}
             checked={selections[item].selected}
-            className="checkbox checkbox-success"
+            className="checkbox checkbox-success flex-none"
           />
+          <span className="label-text whitespace-nowrap">{selections[item].label ?? item}</span>
         </label>
-      );
-    });
+      ));
+
+    return (
+      <>
+        {renderList(primaryQueries)}
+        {advancedQueries.length > 0 && (
+          <div className="mt-4 border-t border-base-300 pt-3">
+            <div className="mb-2 text-xs uppercase tracking-wide text-base-content/60">Advanced</div>
+            {renderList(advancedQueries)}
+          </div>
+        )}
+      </>
+    );
   };
 
   const renderQueryComponents = () => {
@@ -54,6 +68,8 @@ export const MetadataQuery = () => {
             <Component
               key={item}
               queryName={item}
+              label={selections[item].label ?? item}
+              options={selections[item].options ?? []}
               validator={selections[item].validator}
               description={selections[item].description}
               handleQueryValid={handleQueryValid}
@@ -68,6 +84,8 @@ export const MetadataQuery = () => {
           <Component
             key={item}
             queryName={item}
+            label={selections[item].label ?? item}
+            options={selections[item].options ?? []}
             validator={selections[item].validator}
             description={selections[item].description}
             handleQueryValid={handleQueryValid}
@@ -136,14 +154,16 @@ export const MetadataQuery = () => {
 
   return (
     <div className="ml-10 mt-100">
-      <h1 className="text-3xl font-bold">Regular Query</h1>
-      <div className="grid grid-cols-10 gap-3">
-        <div className="col-span-1">
-          <div className="form-control">{renderQuerySelection()}</div>
-        </div>
-        <div className="col-span-9 ml-10 ">
+      <h1 className="text-3xl font-bold mb-4">Regular Query</h1>
+      <div className="flex flex-col md:flex-row gap-8 items-start">
+        <div className="form-control flex-none w-48 sticky top-4">{renderQuerySelection()}</div>
+        <div className="flex-1 min-w-0">
           {renderQueryComponents()}
-          <button onClick={handleQuery} disabled={!showQueryButton()}>
+          <button
+            className="btn btn-success disabled:!bg-[#4CE091] disabled:![--tw-text-opacity:.2] disabled:![color:var(--fallback-b1,oklch(var(--b1)/var(--tw-text-opacity)))]"
+            onClick={handleQuery}
+            disabled={!showQueryButton()}
+          >
             QUERY
           </button>
         </div>

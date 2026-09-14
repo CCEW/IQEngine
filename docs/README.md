@@ -118,6 +118,12 @@ The query logic in [api/app/metadata.py](../api/app/metadata.py#L126-L265) build
 | `captures.core:geolocation` | Geo filtering on captures | radius search |
 | `annotations.core:geolocation` | Geo filtering on annotations | radius search |
 | `global.traceability:origin.type` | Source type metadata | internal/external origin |
+| `global.aerolake:modified` | Metadata modified-time range | incremental refresh |
+| `global.aerolake:signal_type` | Signal category | iridium, ais, ads-b |
+| `global.core:hw` | Hardware description | bladerf |
+| `global.core:geolocation` | Global recording location | radius search |
+| `global.aerolake:operator` | Recording operator | operator lookup |
+| `global.core:recorder` | Recorder software | GR-ION |
 
 The effective search surface is:
 
@@ -147,6 +153,12 @@ The metadata query helper supports these inputs:
 - `min_datetime`
 - `max_datetime`
 - `text`
+- `min_modified` / `max_modified`
+- `signal_type`
+- `hw`
+- `location` (longitude, latitude, radius)
+- `operator`
+- `recorder`
 
 This is the primary catalog search contract exposed by the code.
 
@@ -164,6 +176,17 @@ When an external datasource (for example MinIO or Azure Blob) is synced, IQEngin
 
 The source code for this is in [api/app/datasources.py](../api/app/datasources.py#L69-L224).
 
+### AeroLake requirements
+
+AeroLake must write these fields into each `.sigmf-meta` document before IQEngine syncs it:
+
+- `global.aerolake:modified`: ISO-8601 timestamp representing the source metadata's last-modified time.
+- `global.aerolake:signal_type`: the controlled signal category.
+- `global.aerolake:operator`: the recording operator.
+- `global.core:hw`, `global.core:geolocation`, and `global.core:recorder`: standard SigMF fields.
+
+IQEngine does not derive modified time or operator from storage metadata. The AeroLake metadata producer or its storage-to-SigMF sync job owns population and update semantics. `location` queries use `global.core:geolocation` and require the same GeoJSON/2dsphere MongoDB setup as other `$near` queries.
+
 ## Operational guidance for AeroLake
 
 For an AeroLake integration, the safe pattern is:
@@ -179,7 +202,9 @@ This is the recommended operational model:
 - `.sigmf-meta` and `.sigmf-data` are created or updated in that storage
 - the IQEngine sync step indexes the new/changed objects
 - catalog queries reference the indexed metadata
-- deletions should be treated as a reconciliation problem, not as an assumed automatic cleanup unless explicitly implemented
+- the versioned integration sync reconciles absent records as `missing` and,
+  after `IQENGINE_SYNC_RETENTION_HOURS` (seven days by default), as `deleted`;
+  it does not hard-delete them
 
 ## Production-readiness notes
 
@@ -210,6 +235,18 @@ Core catalog access patterns include:
 - `GET /api/datasources/query`
 - `GET /api/datasources/{account}/{container}/{filepath:path}/meta`
 - `POST /api/datasources/{account}/{container}/{filepath:path}/meta`
+
+The AeroLake-oriented integration surface is versioned for datasource lookup,
+sync, sync status, and query:
+
+- `GET /api/v1/integration/datasources/{account}/{container}`
+- `POST /api/v1/integration/datasources/{account}/{container}/sync`
+- `GET /api/v1/integration/sync/{job_id}`
+- `GET /api/v1/integration/datasources/query`
+
+The sync request returns `202` and a job document. The job status reports
+`queued`, `running`, `completed`, or `failed`, with duration, object counts,
+and errors. Metadata retrieval remains on the unversioned route above.
 
 In practice, the catalog API is intended to be used as the integration boundary, while raw storage remains the true data source.
 
